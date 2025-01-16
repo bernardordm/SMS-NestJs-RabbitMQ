@@ -10,6 +10,9 @@ export class Sms {
 
   @Prop({ required: true })
   message: string;
+
+  @Prop({ default: 'pending' })
+  status: string;
 }
 
 export const SmsSchema = SchemaFactory.createForClass(Sms);

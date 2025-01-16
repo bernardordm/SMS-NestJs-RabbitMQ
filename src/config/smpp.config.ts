@@ -23,5 +23,11 @@ export function createSMPPConnection() {
     console.error('SMPP error:', err);
   });
 
+  session.on('pdu', (pdu) => {
+    if (pdu.command === 'deliver_sm') {
+      console.log('Received delivery receipt:', pdu);
+    }
+  });
+
   return session;
 }

@@ -4,8 +4,8 @@ import {
   createRabbitMQChannel,
 } from '../config/rabbitmq.config';
 import { createSMPPConnection } from '../config/smpp.config';
-import { InjectConnection, InjectModel } from '@nestjs/mongoose';
-import { Connection, Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { Sms } from 'src/schema/sms.schema';
 
 @Injectable()
@@ -18,12 +18,6 @@ export class SmsService implements OnModuleInit {
   async onModuleInit() {
     await this.init();
   }
-
-  async findAll() : Promise<Sms[]> {
-    return this.smsModel.find().exec();
-  }
-
-
 
   async init() {
     this.channel = await createRabbitMQChannel();
@@ -44,14 +38,23 @@ export class SmsService implements OnModuleInit {
       const smsData = JSON.parse(msg.content.toString());
       // Implementar lógica de envio via SMPP
       this.smppSession.submit_sm({
+        source_addr: process.env.SENDER_ID || 'default_sender',
         destination_addr: smsData.phoneNumber,
         short_message: smsData.message,
-      }, (pdu) => {
+      }, async (pdu) => {
         if (pdu.command_status === 0) {
           console.log('SMS sent successfully');
+          await this.smsModel.updateOne(
+            { phoneNumber: smsData.phoneNumber, message: smsData.message },
+            { status: 'sent' },
+          );
           this.channel.ack(msg); // Confirma a mensagem após o envio bem-sucedido
         } else {
           console.log('Failed to send SMS');
+          await this.smsModel.updateOne(
+            { phoneNumber: smsData.phoneNumber, message: smsData.message },
+            { status: 'failed' },
+          );
           this.channel.nack(msg); // Não confirma a mensagem em caso de falha
         }
       });
@@ -69,7 +72,6 @@ export class SmsService implements OnModuleInit {
         persistent: true,
       },
     );
-    return { message: 'SMS added to queue' };
+    return { message: 'SMS added to queue and saved to database' };
   }
-
 }
