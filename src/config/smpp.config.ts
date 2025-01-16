@@ -1,6 +1,4 @@
-// src/config/smpp.config.ts
 import * as smpp from 'smpp';
-import * as fs from 'fs';
 
 export function createSMPPConnection() {
   console.log('Iniciando a criação da conexão SMPP');
@@ -8,12 +6,8 @@ export function createSMPPConnection() {
   const session = new smpp.Session({
     host: process.env.SMPP_HOST || 'localhost',
     port: parseInt(process.env.SMPP_PORT, 10) || 2775,
-    // Se o provedor SMPP exigir SSL/TLS, descomente e configure as opções abaixo:
     tls: {
-      rejectUnauthorized: false, // Desabilita a verificação do certificado (não recomendado para produção)
-      // Certificados podem ser adicionados aqui se necessário
-      // key: fs.readFileSync('path/to/key.pem'),
-      // cert: fs.readFileSync('path/to/cert.pem'),
+      rejectUnauthorized: false,
     },
   });
 
@@ -47,7 +41,6 @@ export function createSMPPConnection() {
   session.on('pdu', (pdu) => {
     if (pdu.command === 'deliver_sm') {
       console.log('Received delivery receipt:', pdu);
-      // Implementar lógica para recibos de entrega, se necessário
     }
   });
 
