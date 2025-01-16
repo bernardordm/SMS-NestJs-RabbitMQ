@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import {
   rabbitmqConfig,
   createRabbitMQChannel,
@@ -6,18 +6,37 @@ import {
 import { createSMPPConnection } from '../config/smpp.config';
 
 @Injectable()
-export class SmsService {
+export class SmsService implements OnModuleInit {
   private channel;
   private smppSession;
 
-  constructor() {
-    this.init();
+  async onModuleInit() {
+    await this.init();
   }
 
   async init() {
     this.channel = await createRabbitMQChannel();
     this.smppSession = await createSMPPConnection();
     this.consumeQueue();
+  }
+
+  async processMessage(msg) {
+    if (msg !== null) {
+      const smsData = JSON.parse(msg.content.toString());
+      // Implementar lógica de envio via SMPP
+      const session = createSMPPConnection();
+      session.submit_sm({
+        destination_addr: smsData.phoneNumber,
+        short_message: smsData.message,
+      }, (pdu) => {
+        if (pdu.command_status === 0) {
+          console.log('SMS sent successfully');
+        } else {
+          console.log('Failed to send SMS');
+        }
+      });
+      this.channel.ack(msg);
+    }
   }
 
   async sendSMS(phoneNumber: string, message: string) {
