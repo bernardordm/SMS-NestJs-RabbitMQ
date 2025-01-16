@@ -8,7 +8,7 @@ export const rabbitmqConfig = {
 export async function createRabbitMQChannel() {
   try {
     const connection = await amqp.connect(rabbitmqConfig.url, {
-      rejectUnauthorized: false, // Desabilitar verificação de certificado SSL (apenas para testes)
+      rejectUnauthorized:true,
     });
     const channel = await connection.createChannel();
     await channel.assertQueue(rabbitmqConfig.queue, { durable: true });
